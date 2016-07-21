@@ -96,6 +96,7 @@ import org.apache.beam.sdk.transforms.windowing.Window;
 import org.apache.beam.sdk.util.CoderUtils;
 import org.apache.beam.sdk.util.IOChannelUtils;
 import org.apache.beam.sdk.util.InstanceBuilder;
+import org.apache.beam.sdk.util.MimeTypes;
 import org.apache.beam.sdk.util.PCollectionViews;
 import org.apache.beam.sdk.util.PathValidator;
 import org.apache.beam.sdk.util.PropertyNames;
@@ -163,6 +164,8 @@ import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -556,17 +559,29 @@ public class DataflowRunner extends PipelineRunner<DataflowPipelineJob> {
       hooks.modifyEnvironmentBeforeSubmission(newJob.getEnvironment());
     }
 
-    if (!isNullOrEmpty(options.getDataflowJobFile())) {
-      try (PrintWriter printWriter = new PrintWriter(
-          new File(options.getDataflowJobFile()))) {
+    if (!Strings.isNullOrEmpty(options.getDataflowJobFile())) {
+      try (WritableByteChannel writer = IOChannelUtils.create(
+          options.getDataflowJobFile(), MimeTypes.TEXT)) {
+        PrintWriter printWriter = new PrintWriter(Channels.newOutputStream(writer));
         String workSpecJson = DataflowPipelineTranslator.jobToString(newJob);
         printWriter.print(workSpecJson);
         LOG.info("Printed workflow specification to {}", options.getDataflowJobFile());
       } catch (IllegalStateException ex) {
-        LOG.warn("Cannot translate workflow spec to json for debug.");
-      } catch (FileNotFoundException ex) {
-        LOG.warn("Cannot create workflow spec output file.");
+        if (hooks != null && hooks.failOnJobFileWriteFailure()) {
+          throw new RuntimeException(ex);
+        } else {
+          LOG.warn("Cannot translate workflow spec to json for debug.");
+        }
+      } catch (IOException ex) {
+        if (hooks != null && hooks.failOnJobFileWriteFailure()) {
+          throw new RuntimeException(ex);
+        } else {
+          LOG.warn("Cannot create workflow spec output file at {}", options.getDataflowJobFile());
+        }
       }
+    }
+    if (hooks != null && !hooks.shouldActuallyRunJob()) {
+      return null;
     }
 
     String jobIdToUpdate = null;
