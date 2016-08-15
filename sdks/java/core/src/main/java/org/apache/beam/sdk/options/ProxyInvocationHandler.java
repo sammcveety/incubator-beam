@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.apache.beam.sdk.options.PipelineOptionsFactory.JsonIgnorePredicate;
 import org.apache.beam.sdk.options.PipelineOptionsFactory.Registration;
+import org.apache.beam.sdk.options.ValueProvider.RuntimeValueProvider;
 import org.apache.beam.sdk.transforms.display.DisplayData;
 import org.apache.beam.sdk.transforms.display.HasDisplayData;
 import org.apache.beam.sdk.util.InstanceBuilder;
@@ -206,7 +207,7 @@ class ProxyInvocationHandler implements InvocationHandler, HasDisplayData {
    */
   synchronized <T extends PipelineOptions> T as(Class<T> iface) {
     checkNotNull(iface);
-    Preconditions.checkArgument(iface.isInterface(), "Not an interface: " + iface.toString());
+    checkArgument(iface.isInterface(), "Not an interface: " + iface.toString());
     if (!interfaceToProxyCache.containsKey(iface)) {
       Registration<T> registration =
           PipelineOptionsFactory.validateWellFormed(iface, knownInterfaces);
@@ -434,7 +435,7 @@ class ProxyInvocationHandler implements InvocationHandler, HasDisplayData {
   private Object getValueFromJson(String propertyName, Method method) {
     try {
       JavaType type;
-      if (method.getReturnType().equals(RuntimeValueProvider.class)) {
+      if (method.getReturnType().equals(ValueProvider.class)) {
         // TODO: Handle other types besides strings with annotations.
         type = MAPPER.getTypeFactory().constructType(String.class);
       } else {
@@ -460,7 +461,15 @@ class ProxyInvocationHandler implements InvocationHandler, HasDisplayData {
    */
   @SuppressWarnings({"unchecked", "rawtypes"})
   private Object getDefault(PipelineOptions proxy, Method method) {
-    if (method.getReturnType().equals(RuntimeValueProvider.class)) {
+    if (method.getReturnType().equals(ValueProvider.class)) {
+      // If has a default annotation, we need to supply that.
+      for (Annotation annotation : method.getAnnotations()) {
+        if (annotation instanceof Default.String) {
+          return new RuntimeValueProvider<String>(
+            method.getName(), (Class<? extends PipelineOptions>) method.getDeclaringClass(),
+            ((Default.String) annotation).value());
+        }
+      }
       return new RuntimeValueProvider<String>(
           method.getName(), (Class<? extends PipelineOptions>) method.getDeclaringClass());
     }
