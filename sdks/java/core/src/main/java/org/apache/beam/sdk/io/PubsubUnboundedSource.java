@@ -51,6 +51,8 @@ import org.apache.beam.sdk.coders.ListCoder;
 import org.apache.beam.sdk.coders.StringUtf8Coder;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PubsubOptions;
+import org.apache.beam.sdk.options.ValueProvider;
+import org.apache.beam.sdk.options.ValueProvider.StaticValueProvider;
 import org.apache.beam.sdk.transforms.Aggregator;
 import org.apache.beam.sdk.transforms.Combine;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -1253,6 +1255,11 @@ public class PubsubUnboundedSource<T> extends PTransform<PBegin, PCollection<T>>
   @Nullable
   public TopicPath getTopic() {
     return topic;
+  }
+
+  @Nullable
+  public ValueProvider<TopicPath> getTopicProvider() {
+    return StaticValueProvider.of(topic);
   }
 
   @Nullable

@@ -632,7 +632,7 @@ public class PubsubIO {
           @Nullable ProjectPath projectPath =
               topic == null ? null : PubsubClient.projectPathFromId(topic.project);
           @Nullable TopicPath topicPath =
-              topic == null ? null : PubsubClient.topicPathFromName(topic.project, topic.topic);
+            topic == null ? null : PubsubClient.topicPathFromPath(topic.asPath());
           @Nullable SubscriptionPath subscriptionPath =
               subscription == null
                   ? null
@@ -719,7 +719,7 @@ public class PubsubIO {
             PubsubClient.SubscriptionPath subscriptionPath;
             if (getSubscription() == null) {
               TopicPath topicPath =
-                  PubsubClient.topicPathFromName(getTopic().project, getTopic().topic);
+                PubsubClient.topicPathFromPath(getTopic().asPath());
               // The subscription will be registered under this pipeline's project if we know it.
               // Otherwise we'll fall back to the topic's project.
               // Note that they don't need to be the same.
@@ -951,7 +951,7 @@ public class PubsubIO {
           case UNBOUNDED:
             return input.apply(new PubsubUnboundedSink<T>(
                 FACTORY,
-                PubsubClient.topicPathFromName(topic.project, topic.topic),
+                PubsubClient.topicPathFromPath(topic.asPath()),
                 coder,
                 timestampLabel,
                 idLabel,
@@ -1034,7 +1034,7 @@ public class PubsubIO {
 
         private void publish() throws IOException {
           int n = pubsubClient.publish(
-              PubsubClient.topicPathFromName(getTopic().project, getTopic().topic),
+            PubsubClient.topicPathFromPath(getTopic().asPath()),
               output);
           checkState(n == output.size());
           output.clear();

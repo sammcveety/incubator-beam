@@ -2100,10 +2100,19 @@ public class DataflowRunner extends PipelineRunner<DataflowPipelineJob> {
       PubsubUnboundedSource<T> overriddenTransform = transform.getOverriddenTransform();
       context.addStep(transform, "ParallelRead");
       context.addInput(PropertyNames.FORMAT, "pubsub");
-      if (overriddenTransform.getTopic() != null) {
-        context.addInput(PropertyNames.PUBSUB_TOPIC,
-                         overriddenTransform.getTopic().getV1Beta1Path());
-      }
+      if (overriddenTransform.getTopicProvider() != null) {
+        if (overriddenTransform.getTopicProvider().isAccessible()) {
+          context.addInput(PropertyNames.PUBSUB_TOPIC,
+                           overriddenTransform.getTopicProvider().get().getV1Beta1Path());
+        } else {
+          /*
+            TODO: Set PUBSUB_TOPIC_RUNTIME from Provider.propertyName()
+
+            context.addInput(PropertyNames.PUBSUB_TOPIC,
+                           overriddenTransform.getTopicProvider().get().getV1Beta1Path());
+          */
+        }
+      } 
       if (overriddenTransform.getSubscription() != null) {
         context.addInput(
             PropertyNames.PUBSUB_SUBSCRIPTION,

@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import javax.annotation.Nullable;
 import org.apache.beam.sdk.options.PubsubOptions;
+import org.apache.beam.sdk.options.ValueProvider;
 
 /**
  * An (abstract) helper class for talking to Pubsub via an underlying transport.
@@ -178,6 +179,26 @@ public abstract class PubsubClient implements Closeable {
     return new ProjectPath(String.format("projects/%s", projectId));
   }
 
+  static class ProjectProvider implements ValueProvider<ProjectPath> {
+    private final ValueProvider<TopicPath> path;
+
+    ProjectProvider(ValueProvider<TopicPath> path) {
+      this.path = path;
+    }
+
+    public boolean isAccessible() {
+      return path.isAccessible();
+    }
+
+    public ProjectPath get() {
+      return projectPathFromId(path.get().getProject());
+    }
+  }
+
+  public static ProjectProvider projectPathFromId(ValueProvider<TopicPath> path) {
+    return new ProjectProvider(path);
+  }
+
   /**
    * Path representing a Pubsub subscription.
    */
@@ -241,6 +262,26 @@ public abstract class PubsubClient implements Closeable {
                                               projectId, subscriptionName));
   }
 
+  static class SubscriptionProvider implements ValueProvider<SubscriptionPath> {
+    private final ValueProvider<String> path;
+
+    SubscriptionProvider(ValueProvider<String> path) {
+      this.path = path;
+    }
+
+    public boolean isAccessible() {
+      return path.isAccessible();
+    }
+
+    public SubscriptionPath get() {
+      return subscriptionPathFromPath(path.get());
+    }
+  }
+
+  public static SubscriptionProvider subscriptionPathFromPath(ValueProvider<String> path) {
+    return new SubscriptionProvider(path);
+  }
+
   /**
    * Path representing a Pubsub topic.
    */
@@ -253,6 +294,12 @@ public abstract class PubsubClient implements Closeable {
 
     public String getPath() {
       return path;
+    }
+
+    public String getProject() {
+      String[] splits = path.split("/");
+      checkState(splits.length == 4, "Malformed topic path %s", path);
+      return splits[1];
     }
 
     public String getName() {
@@ -296,6 +343,30 @@ public abstract class PubsubClient implements Closeable {
 
   public static TopicPath topicPathFromName(String projectId, String topicName) {
     return new TopicPath(String.format("projects/%s/topics/%s", projectId, topicName));
+  }
+
+  static class TopicProvider implements ValueProvider<TopicPath> {
+    private final ValueProvider<String> path;
+
+    TopicProvider(ValueProvider<String> path) {
+      this.path = path;
+    }
+
+    public boolean isAccessible() {
+      return path.isAccessible();
+    }
+
+    public String propertyName() {
+      return "TODO";
+    }
+
+    public TopicPath get() {
+      return topicPathFromPath(path.get());
+    }
+  }
+
+  public static TopicProvider topicPathFromPath(ValueProvider<String> path) {
+    return new TopicProvider(path);
   }
 
   /**
