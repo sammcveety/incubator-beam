@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import java.io.IOException;
 import java.util.Map;
 
@@ -49,7 +48,8 @@ public class ValueProviderUtils {
     }
 
     for (Map.Entry<String, String> entry : runtimeValues.entrySet()) {
-      options.put(entry.getKey(), entry.getValue());
+      options.put(entry.getKey(),
+          mapper.createObjectNode().put("value", entry.getValue()));
     }
     try {
       return mapper.writeValueAsString(root);

@@ -222,9 +222,9 @@ public interface ValueProvider<T> {
     public void serialize(ValueProvider<?> value, JsonGenerator jgen,
                           SerializerProvider provider) throws IOException {
       if (value.isAccessible()) {
-        jgen.writeObject(value.get());
+        jgen.writeObjectField("value", value.get());
       } else {
-        jgen.writeNull();
+        jgen.writeNullField("value");
       }
     }
   }

@@ -116,7 +116,7 @@ public class ValueProviderTest {
   public void testNoDefaultRuntimeProviderWithOverride() throws Exception {
     ObjectMapper mapper = new ObjectMapper();
     TestOptions runtime = mapper.readValue(
-      "{ \"options\": { \"foo\": \"quux\" }}", PipelineOptions.class)
+      "{ \"options\": { \"foo\": { \"value\": \"quux\" }}}", PipelineOptions.class)
       .as(TestOptions.class);
 
     TestOptions options = PipelineOptionsFactory.as(TestOptions.class);
@@ -132,7 +132,7 @@ public class ValueProviderTest {
   public void testDefaultRuntimeProviderWithOverride() throws Exception {
     ObjectMapper mapper = new ObjectMapper();
     TestOptions runtime = mapper.readValue(
-      "{ \"options\": { \"bar\": \"quux\" }}", PipelineOptions.class)
+      "{ \"options\": { \"bar\": { \"value\": \"quux\" }}}", PipelineOptions.class)
       .as(TestOptions.class);
 
     TestOptions options = PipelineOptionsFactory.as(TestOptions.class);
