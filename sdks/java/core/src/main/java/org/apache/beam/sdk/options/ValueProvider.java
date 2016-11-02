@@ -265,7 +265,9 @@ public interface ValueProvider<T> {
     public ValueProvider<?> deserialize(JsonParser jp, DeserializationContext ctxt)
         throws IOException, JsonProcessingException {
       JsonDeserializer dser = ctxt.findRootValueDeserializer(
-        checkNotNull(innerType, "Invalid %s: innerType is null. Serialization error?", getClass()));
+          checkNotNull(innerType,
+              "Invalid %s: innerType is null. Serialization error?", getClass()));
+      jp.nextValue();
       Object o = dser.deserialize(jp, ctxt);
       return StaticValueProvider.of(o);
     }
