@@ -27,6 +27,8 @@ import static org.apache.beam.sdk.util.WindowedValue.valueInEmptyWindows;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.clouddebugger.v2.Clouddebugger;
 import com.google.api.services.clouddebugger.v2.model.Debuggee;
@@ -566,12 +568,29 @@ public class DataflowRunner extends PipelineRunner<DataflowPipelineJob> {
       checkArgument(fileLocation.startsWith("/") || fileLocation.startsWith("gs://"),
           String.format(
               "Location must be local or on Cloud Storage, got {}.", fileLocation));
+      String metadataJson = "";
+      String metadataFileLocation = fileLocation + "_metadata";
+      if (isTemplate) {
+        Map<String, Map<String, Object>> metadata = options.outputRuntimeOptions();
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+          metadataJson = mapper.writeValueAsString(metadata);
+        } catch (JsonProcessingException e) {
+          throw new RuntimeException("Unable to serialize options", e);
+        }
+      }
       String workSpecJson = DataflowPipelineTranslator.jobToString(newJob);
       try (
           WritableByteChannel writer =
               IOChannelUtils.create(fileLocation, MimeTypes.TEXT);
-          PrintWriter printWriter = new PrintWriter(Channels.newOutputStream(writer))) {
+          PrintWriter printWriter = new PrintWriter(Channels.newOutputStream(writer));
+          WritableByteChannel metadataWriter =
+              IOChannelUtils.create(metadataFileLocation, MimeTypes.TEXT);
+          PrintWriter metadataPrintWriter = new PrintWriter(Channels.newOutputStream(metadataWriter))) {
         printWriter.print(workSpecJson);
+        if (isTemplate) {
+          metadataPrintWriter.print(metadataJson);
+        }
         LOG.info("Printed job specification to {}", fileLocation);
       } catch (IOException ex) {
         String error =
