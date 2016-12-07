@@ -41,11 +41,13 @@ import org.apache.beam.sdk.coders.StringUtf8Coder;
 import org.apache.beam.sdk.coders.VarIntCoder;
 import org.apache.beam.sdk.options.PubsubOptions;
 import org.apache.beam.sdk.options.ValueProvider;
+import org.apache.beam.sdk.options.ValueProvider.NestedValueProvider;
 import org.apache.beam.sdk.transforms.Aggregator;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.GroupByKey;
 import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.transforms.ParDo;
+import org.apache.beam.sdk.transforms.SerializableFunction;
 import org.apache.beam.sdk.transforms.Sum;
 import org.apache.beam.sdk.transforms.display.DisplayData;
 import org.apache.beam.sdk.transforms.display.DisplayData.Builder;
@@ -98,6 +100,17 @@ public class PubsubUnboundedSink<T> extends PTransform<PCollection<T>, PDone> {
    * Default longest delay between receiving a message and pushing it to Pubsub.
    */
   private static final Duration DEFAULT_MAX_LATENCY = Duration.standardSeconds(2);
+
+  /**
+   * Used to build a {@link ValueProvider<String>} for {@link TopicPath}.
+   */
+  private static class TopicPathToString
+      implements SerializableFunction<TopicPath, String> {
+    @Override
+    public String apply(TopicPath from) {
+      return from.getPath();
+    }
+  }
 
   /**
    * Coder for conveying outgoing messages between internal stages.
@@ -291,11 +304,8 @@ public class PubsubUnboundedSink<T> extends PTransform<PCollection<T>, PDone> {
     @Override
     public void populateDisplayData(Builder builder) {
       super.populateDisplayData(builder);
-        String topicString =
-            topic == null ? null
-            : topic.isAccessible() ? topic.get().getPath()
-            : topic.toString();
-      builder.add(DisplayData.item("topic", topicString));
+      builder.add(DisplayData.item("topic", NestedValueProvider.of(
+          topic, new TopicPathToString())));
       builder.add(DisplayData.item("transport", pubsubFactory.getKind()));
       builder.addIfNotNull(DisplayData.item("timestampLabel", timestampLabel));
       builder.addIfNotNull(DisplayData.item("idLabel", idLabel));

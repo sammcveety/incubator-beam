@@ -138,15 +138,15 @@ public class PubsubIO {
    * Populate common {@link DisplayData} between Pubsub source and sink.
    */
   private static void populateCommonDisplayData(DisplayData.Builder builder,
-      String timestampLabel, String idLabel, String topic) {
+      String timestampLabel, String idLabel, ValueProvider<PubsubTopic> topic) {
     builder
         .addIfNotNull(DisplayData.item("timestampLabel", timestampLabel)
             .withLabel("Timestamp Label Attribute"))
         .addIfNotNull(DisplayData.item("idLabel", idLabel)
             .withLabel("ID Label Attribute"));
-
     if (topic != null) {
-      builder.add(DisplayData.item("topic", topic)
+      builder.add(DisplayData.item("topic", NestedValueProvider.of(
+          topic, new PubsubTopicToString()))
           .withLabel("Pubsub Topic"));
     }
   }
@@ -308,6 +308,28 @@ public class PubsubIO {
     @Override
     public ProjectPath apply(PubsubTopic from) {
       return PubsubClient.projectPathFromId(from.project);
+    }
+  }
+
+  /**
+   * Used to build a {@link ValueProvider<String>} for {@link PubsubTopic}.
+   */
+  private static class PubsubTopicToString
+      implements SerializableFunction<PubsubTopic, String> {
+    @Override
+    public String apply(PubsubTopic from) {
+      return from.asPath();
+    }
+  }
+
+  /**
+   * Used to build a {@link ValueProvider<String>} for {@link PubsubSubscription}.
+   */
+  private static class PubsubSubscriptionToString
+      implements SerializableFunction<PubsubSubscription, String> {
+    @Override
+    public String apply(PubsubSubscription from) {
+      return from.asPath();
     }
   }
 
@@ -736,22 +758,16 @@ public class PubsubIO {
       @Override
       public void populateDisplayData(DisplayData.Builder builder) {
         super.populateDisplayData(builder);
-        String topicString =
-            topic == null ? null
-            : topic.isAccessible() ? topic.get().asPath()
-            : topic.toString();
-        populateCommonDisplayData(builder, timestampLabel, idLabel, topicString);
+        populateCommonDisplayData(builder, timestampLabel, idLabel, topic);
 
         builder
             .addIfNotNull(DisplayData.item("maxReadTime", maxReadTime)
-              .withLabel("Maximum Read Time"))
+                .withLabel("Maximum Read Time"))
             .addIfNotDefault(DisplayData.item("maxNumRecords", maxNumRecords)
-              .withLabel("Maximum Read Records"), 0);
-
+                .withLabel("Maximum Read Records"), 0);
         if (subscription != null) {
-          String subscriptionString = subscription.isAccessible()
-              ? subscription.get().asPath() : subscription.toString();
-          builder.add(DisplayData.item("subscription", subscriptionString)
+          builder.add(DisplayData.item("subscription", NestedValueProvider.of(
+              subscription, new PubsubSubscriptionToString()))
               .withLabel("Pubsub Subscription"));
         }
       }
@@ -1080,9 +1096,7 @@ public class PubsubIO {
       @Override
       public void populateDisplayData(DisplayData.Builder builder) {
         super.populateDisplayData(builder);
-        String topicString = topic.isAccessible()
-            ? topic.get().asPath() : topic.toString();
-        populateCommonDisplayData(builder, timestampLabel, idLabel, topicString);
+        populateCommonDisplayData(builder, timestampLabel, idLabel, topic);
       }
 
       @Override

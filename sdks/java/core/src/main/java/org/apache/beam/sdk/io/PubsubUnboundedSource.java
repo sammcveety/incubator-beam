@@ -53,11 +53,13 @@ import org.apache.beam.sdk.coders.StringUtf8Coder;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PubsubOptions;
 import org.apache.beam.sdk.options.ValueProvider;
+import org.apache.beam.sdk.options.ValueProvider.NestedValueProvider;
 import org.apache.beam.sdk.transforms.Aggregator;
 import org.apache.beam.sdk.transforms.Combine;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.transforms.ParDo;
+import org.apache.beam.sdk.transforms.SerializableFunction;
 import org.apache.beam.sdk.transforms.Sum;
 import org.apache.beam.sdk.transforms.Sum.SumLongFn;
 import org.apache.beam.sdk.transforms.display.DisplayData;
@@ -187,6 +189,17 @@ public class PubsubUnboundedSource<T> extends PTransform<PBegin, PCollection<T>>
    * Additional sharding so that we can hide read message latency.
    */
   private static final int SCALE_OUT = 4;
+
+  /**
+   * Used to build a {@link ValueProvider<String>} for {@link SubscriptionPath}.
+   */
+  private static class SubscriptionPathToString
+      implements SerializableFunction<SubscriptionPath, String> {
+    @Override
+    public String apply(SubscriptionPath from) {
+      return from.getPath();
+    }
+  }
 
   // TODO: Would prefer to use MinLongFn but it is a BinaryCombineFn<Long> rather
   // than a BinaryCombineLongFn. [BEAM-285]
@@ -1190,11 +1203,8 @@ public class PubsubUnboundedSource<T> extends PTransform<PBegin, PCollection<T>>
     @Override
     public void populateDisplayData(Builder builder) {
       super.populateDisplayData(builder);
-        String subscriptionString =
-            subscription == null ? null
-            : subscription.isAccessible() ? subscription.get().getPath()
-            : subscription.toString();
-      builder.add(DisplayData.item("subscription", subscriptionString));
+      builder.add(DisplayData.item("subscription", NestedValueProvider.of(
+          subscription, new SubscriptionPathToString())));
       builder.add(DisplayData.item("transport", pubsubFactory.getKind()));
       builder.addIfNotNull(DisplayData.item("timestampLabel", timestampLabel));
       builder.addIfNotNull(DisplayData.item("idLabel", idLabel));

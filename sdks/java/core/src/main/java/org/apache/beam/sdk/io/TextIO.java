@@ -345,14 +345,12 @@ public class TextIO {
       public void populateDisplayData(DisplayData.Builder builder) {
         super.populateDisplayData(builder);
 
-        String filepatternDisplay = filepattern.isAccessible()
-          ? filepattern.get() : filepattern.toString();
         builder
             .add(DisplayData.item("compressionType", compressionType.toString())
               .withLabel("Compression Type"))
             .addIfNotDefault(DisplayData.item("validation", validate)
               .withLabel("Validation Enabled"), true)
-            .addIfNotNull(DisplayData.item("filePattern", filepatternDisplay)
+            .addIfNotNull(DisplayData.item("filePattern", filepattern)
               .withLabel("File Pattern"));
       }
 
@@ -761,10 +759,8 @@ public class TextIO {
       public void populateDisplayData(DisplayData.Builder builder) {
         super.populateDisplayData(builder);
 
-        String prefixString = filenamePrefix.isAccessible()
-            ? filenamePrefix.get() : filenamePrefix.toString();
         builder
-            .addIfNotNull(DisplayData.item("filePrefix", prefixString)
+            .addIfNotNull(DisplayData.item("filePrefix", filenamePrefix)
               .withLabel("Output File Prefix"))
             .addIfNotDefault(DisplayData.item("fileSuffix", filenameSuffix)
               .withLabel("Output Fix Suffix"), "")
