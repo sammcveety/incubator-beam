@@ -17,6 +17,8 @@
  */
 package org.apache.beam.sdk.options;
 
+import java.util.UUID;
+
 /**
  * Options that allow setting the application name.
  */
@@ -31,4 +33,19 @@ public interface ApplicationNameOptions extends PipelineOptions {
       + "constructs the PipelineOptions via the PipelineOptionsFactory.")
   String getAppName();
   void setAppName(String value);
+
+  /**
+   * Unique identifier for the {@link Pipeline}.  Overridable by a given {@link PipelineRunner}.
+   */
+  @Description("Unique identifier for the pipeline.")
+  @Default.InstanceFactory(DefaultPipelineIdFactory.class)
+  ValueProvider<String> getPipelineId();
+  void setPipelineId(ValueProvider<String> value);
+
+  class DefaultPipelineIdFactory implements DefaultValueFactory<String> {
+    @Override
+    public String create(PipelineOptions options) {
+      return UUID.randomUUID().toString();
+    }
+  }
 }

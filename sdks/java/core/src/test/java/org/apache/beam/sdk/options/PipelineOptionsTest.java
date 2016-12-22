@@ -91,6 +91,7 @@ public class PipelineOptionsTest {
         PipelineOptionsFactory.fromArgs(
             new String[]{"--string=baz"}).as(ValueProviderOptions.class);
     Map<String, ?> expected = ImmutableMap.of(
+        "pipelineId", ImmutableMap.of("type", String.class),
         "bool", ImmutableMap.of("type", Boolean.class));
     assertEquals(expected, options.outputRuntimeOptions());
   }
